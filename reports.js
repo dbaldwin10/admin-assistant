@@ -21,6 +21,7 @@ const logoutBtn = document.getElementById("logout-btn");
 const userInfo = document.getElementById("user-info");
 const content = document.getElementById("content");
 const generateMissedDetentionPdfBtn = document.getElementById("generate-missed-detention-pdf");
+const generateMissedDetentionReceiptPdfBtn = document.getElementById("generate-missed-detention-receipt-pdf");
 const exportOutstandingDetentionsBtn = document.getElementById("export-outstanding-detentions");
 const missedSlipsMaxDaysInput = document.getElementById("missed-slips-max-days");
 const outstandingExcelMaxDaysInput = document.getElementById("outstanding-excel-max-days");
@@ -59,6 +60,10 @@ exportOutstandingDetentionsBtn.addEventListener("click", async () => {
 
 generateMissedDetentionPdfBtn.addEventListener("click", async () => {
   await runWithButtonLoading(generateMissedDetentionPdfBtn, "Generating...", exportMissedDetentionNoticePdf);
+});
+
+generateMissedDetentionReceiptPdfBtn.addEventListener("click", async () => {
+  await runWithButtonLoading(generateMissedDetentionReceiptPdfBtn, "Generating...", exportMissedDetentionNoticeReceiptPdf);
 });
 
 async function runWithButtonLoading(button, loadingText, action) {
@@ -285,6 +290,80 @@ async function exportMissedDetentionNoticePdf() {
     doc.setFontSize(11);
     const lines = doc.splitTextToSize(noticeText, maxTextWidth);
     doc.text(lines, marginX, noticeStartY, { lineHeightFactor: 1.35 });
+  });
+
+  doc.save(`missed-detention-notices-${date}.pdf`);
+}
+
+async function exportMissedDetentionNoticeReceiptPdf() {
+  const maximumDays = getMaximumDays(missedSlipsMaxDaysInput, 1);
+  if (maximumDays === null) return;
+
+  const rows = buildMissedDetentionNoticeRows(maximumDays);
+
+  if (rows.length === 0) {
+    alert(`No overdue outstanding detentions within ${maximumDays} day(s) were found.`);
+    return;
+  }
+
+  const date = getLocalDateString();
+  const noticeText = getMissedDetentionNoticeText();
+
+  const RECEIPT_WIDTH = 80;                 // mm, paper width
+  const MARGIN_X = 4;                       // printable area is usually ~72mm on 80mm paper
+  const MAX_TEXT_WIDTH = RECEIPT_WIDTH - MARGIN_X * 2;
+  const BOTTOM_PADDING = 12;                // space so the cutter doesn't slice through text
+  const LINE_FACTOR = 1.3;
+
+  // Draws one slip and returns the y position where it ended.
+  // Used on a scratch doc to measure, then again on the real doc to print.
+  const drawSlip = (d, student) => {
+    const lineHeight = size => (size * LINE_FACTOR) / d.internal.scaleFactor;
+    let y = 8;
+
+    d.setFont("helvetica", "bold");
+    d.setFontSize(14);
+    const nameLines = d.splitTextToSize(student.fullName, MAX_TEXT_WIDTH);
+    d.text(nameLines, MARGIN_X, y, { lineHeightFactor: LINE_FACTOR });
+    y += nameLines.length * lineHeight(14) + 1;
+
+    d.setFont("helvetica", "normal");
+    d.setFontSize(10);
+    d.text(`Year ${student.yearGroup || "-"}  Roll Class: ${student.rollClass || "-"}`, MARGIN_X, y);
+    y += lineHeight(10) + 3;
+
+    d.setFont("helvetica", "bold");
+    d.setFontSize(9);
+    d.text("Unexplained late arrival date(s):", MARGIN_X, y);
+    y += lineHeight(9);
+
+    d.setFont("helvetica", "normal");
+    const dateText = student.unexplainedLateArrivalDates.length > 0
+      ? student.unexplainedLateArrivalDates.map(formatDateForDisplay).join(", ")
+      : "Date unavailable";
+    const dateLines = d.splitTextToSize(dateText, MAX_TEXT_WIDTH);
+    d.text(dateLines, MARGIN_X, y, { lineHeightFactor: LINE_FACTOR });
+    y += dateLines.length * lineHeight(9) + 4;
+
+    d.setFontSize(8.5);
+    const noticeLines = d.splitTextToSize(noticeText, MAX_TEXT_WIDTH);
+    d.text(noticeLines, MARGIN_X, y, { lineHeightFactor: LINE_FACTOR });
+    y += noticeLines.length * lineHeight(8.5);
+
+    return y;
+  };
+
+  // Pass 1: measure each slip on a scratch document
+  const scratch = new jsPDF({ unit: "mm", format: [RECEIPT_WIDTH, 500] });
+  const pageHeights = rows.map(student => drawSlip(scratch, student) + BOTTOM_PADDING);
+
+  // Pass 2: build the real document, one custom-height page per student
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [RECEIPT_WIDTH, pageHeights[0]] });
+  rows.forEach((student, index) => {
+    if (index > 0) {
+      doc.addPage([RECEIPT_WIDTH, pageHeights[index]], "portrait");
+    }
+    drawSlip(doc, student);
   });
 
   doc.save(`missed-detention-notices-${date}.pdf`);
