@@ -584,7 +584,6 @@ function buildMissedDetentionNoticeRows(maximumDays) {
 function getMissedDetentionNoticeParts(yearGroup) {
   const todayText = getLocalDateString();
   const weekday = formatWeekday(todayText);
-  const displayDate = formatDateForDisplay(todayText);
 
   const breakTimes = {
     Monday: "10:35",
@@ -594,7 +593,8 @@ function getMissedDetentionNoticeParts(yearGroup) {
     Friday: "10:35"
   };
   const breakTime = breakTimes[weekday];
-  const firstBreakText = breakTime
+  const atTime = breakTime ? ` at ${breakTime}` : "";
+  const firstBreakText = weekday
     ? `FIRST BREAK TODAY (${weekday})`
     : "FIRST BREAK TODAY";
 
@@ -602,12 +602,12 @@ function getMissedDetentionNoticeParts(yearGroup) {
   let roomLine;
 
   if (year >= 7 && year <= 9) {
-    roomLine = "A7 at ${breakTime}";
+    roomLine = `A7${atTime}`;
   } else if (year >= 10 && year <= 12) {
-    roomLine = "A9 at ${breakTime}";
+    roomLine = `A9${atTime}`;
   } else {
     // Year unknown: show both rooms
-    roomLine = "Year 7, Year 8 & Year 9 in A7\nYear 10, Year 11 & Year 12 in A9";
+    roomLine = `Year 7, Year 8 & Year 9 in A7${atTime}\nYear 10, Year 11 & Year 12 in A9${atTime}`;
   }
 
   return {
