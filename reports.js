@@ -262,7 +262,6 @@ async function exportMissedDetentionNoticePdf() {
   const slipHeight = pageHeight / 2;
   const marginX = 20;
   const maxTextWidth = pageWidth - (marginX * 2);
-  const noticeText = getMissedDetentionNoticeText();
 
   const drawSlip = (student, top) => {
     doc.setFont("helvetica", "bold");
@@ -286,7 +285,7 @@ async function exportMissedDetentionNoticePdf() {
 
     const noticeStartY = top + 37 + (lateArrivalDateLines.length * 5) + 6;
     doc.setFontSize(10);
-    const lines = doc.splitTextToSize(noticeText, maxTextWidth);
+    const lines = doc.splitTextToSize(getMissedDetentionNoticeText(student.yearGroup), maxTextWidth);
     doc.text(lines, marginX, noticeStartY, { lineHeightFactor: 1.3 });
   };
 
@@ -323,7 +322,6 @@ async function exportMissedDetentionNoticeReceiptPdf() {
   }
 
   const date = getLocalDateString();
-  const noticeText = getMissedDetentionNoticeText();
 
   const RECEIPT_WIDTH = 80;                 // mm, paper width
   const MARGIN_X = 6;                       // printable area is usually ~72mm on 80mm paper
@@ -362,7 +360,7 @@ async function exportMissedDetentionNoticeReceiptPdf() {
     y += dateLines.length * lineHeight(9) + 4;
 
     d.setFontSize(8.5);
-    const noticeLines = d.splitTextToSize(noticeText, MAX_TEXT_WIDTH);
+    const noticeLines = d.splitTextToSize(getMissedDetentionNoticeText(student.yearGroup), MAX_TEXT_WIDTH);
     d.text(noticeLines, MARGIN_X, y, { lineHeightFactor: LINE_FACTOR });
     y += noticeLines.length * lineHeight(8.5);
 
@@ -552,12 +550,46 @@ function buildMissedDetentionNoticeRows(maximumDays) {
     });
 }
 
-function getMissedDetentionNoticeText() {
+function getMissedDetentionNoticeText(yearGroup) {
+  const todayText = getLocalDateString();
+  const weekday = formatWeekday(todayText);
+  const displayDate = formatDateForDisplay(todayText);
+
+  const breakTimes = {
+    Monday: "10:35",
+    Tuesday: "10:25",
+    Wednesday: "10:35",
+    Thursday: "10:25",
+    Friday: "10:35"
+  };
+  const breakTime = breakTimes[weekday];
+  const firstBreakText = breakTime
+    ? `FIRST BREAK TODAY (${weekday} ${breakTime})`
+    : "FIRST BREAK TODAY";
+
+  const year = Number.parseInt(yearGroup, 10);
+  let roomLines;
+  let roomIntro;
+
+  if (year >= 7 && year <= 9) {
+    roomIntro = "in room A7.";
+    roomLines = [];
+  } else if (year >= 10 && year <= 12) {
+    roomIntro = "in room A9.";
+    roomLines = [];
+  } else {
+    // Year unknown: fall back to showing both rooms
+    roomIntro = "in the appropriate room below:";
+    roomLines = [
+      "",
+      "Year 7, Year 8 & Year 9 in A7",
+      "Year 10, Year 11 & Year 12 in A9"
+    ];
+  }
+
   return [
-    "This week you arrived to school late (after roll call) and did not bring a note. You had a detention scheduled, but did not attend. Please attend the detention room at FIRST BREAK TODAY (10:35 Mon / Wed / Fri or 10:25 Tue / Thur), in the appropriate room below:",
-    "",
-    "Year 7, Year 8 & Year 9 in A7",
-    "Year 10, Year 11 & Year 12 in A9",
+    `This week you arrived to school late (after roll call) and did not bring a note. You had a detention scheduled, but did not attend. Please attend the detention room at ${firstBreakText}, ${roomIntro}`,
+    ...roomLines,
     "",
     "If you refuse to attend a detention for your late arrival to school, you may receive an after school detention.",
     "",
