@@ -283,10 +283,26 @@ async function exportMissedDetentionNoticePdf() {
     const lateArrivalDateLines = doc.splitTextToSize(lateArrivalDateText, maxTextWidth);
     doc.text(lateArrivalDateLines, marginX, top + 37, { lineHeightFactor: 1.25 });
 
-    const noticeStartY = top + 37 + (lateArrivalDateLines.length * 5) + 6;
+    const parts = getMissedDetentionNoticeParts(student.yearGroup);
+    const lh = size => (size * 1.3) / doc.internal.scaleFactor;
+    let y = top + 37 + (lateArrivalDateLines.length * 5) + 6;
+
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    const lines = doc.splitTextToSize(getMissedDetentionNoticeText(student.yearGroup), maxTextWidth);
-    doc.text(lines, marginX, noticeStartY, { lineHeightFactor: 1.3 });
+    const introLines = doc.splitTextToSize(parts.intro, maxTextWidth);
+    doc.text(introLines, marginX, y, { lineHeightFactor: 1.3 });
+    y += introLines.length * lh(10) + 2;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    const roomLines = doc.splitTextToSize(parts.roomLine, maxTextWidth);
+    doc.text(roomLines, marginX, y, { lineHeightFactor: 1.3 });
+    y += roomLines.length * lh(13) + 2;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    const outroLines = doc.splitTextToSize(parts.outro, maxTextWidth);
+    doc.text(outroLines, marginX, y, { lineHeightFactor: 1.3 });
   };
 
   rows.forEach((student, index) => {
@@ -359,10 +375,25 @@ async function exportMissedDetentionNoticeReceiptPdf() {
     d.text(dateLines, MARGIN_X, y, { lineHeightFactor: LINE_FACTOR });
     y += dateLines.length * lineHeight(9) + 4;
 
+    const parts = getMissedDetentionNoticeParts(student.yearGroup);
+
+    d.setFont("helvetica", "normal");
     d.setFontSize(8.5);
-    const noticeLines = d.splitTextToSize(getMissedDetentionNoticeText(student.yearGroup), MAX_TEXT_WIDTH);
-    d.text(noticeLines, MARGIN_X, y, { lineHeightFactor: LINE_FACTOR });
-    y += noticeLines.length * lineHeight(8.5);
+    const introLines = d.splitTextToSize(parts.intro, MAX_TEXT_WIDTH);
+    d.text(introLines, MARGIN_X, y, { lineHeightFactor: LINE_FACTOR });
+    y += introLines.length * lineHeight(8.5) + 1.5;
+
+    d.setFont("helvetica", "bold");
+    d.setFontSize(11);
+    const roomLines = d.splitTextToSize(parts.roomLine, MAX_TEXT_WIDTH);
+    d.text(roomLines, MARGIN_X, y, { lineHeightFactor: LINE_FACTOR });
+    y += roomLines.length * lineHeight(11) + 1.5;
+
+    d.setFont("helvetica", "normal");
+    d.setFontSize(8.5);
+    const outroLines = d.splitTextToSize(parts.outro, MAX_TEXT_WIDTH);
+    d.text(outroLines, MARGIN_X, y, { lineHeightFactor: LINE_FACTOR });
+    y += outroLines.length * lineHeight(8.5);
 
     return y;
   };
@@ -550,7 +581,7 @@ function buildMissedDetentionNoticeRows(maximumDays) {
     });
 }
 
-function getMissedDetentionNoticeText(yearGroup) {
+function getMissedDetentionNoticeParts(yearGroup) {
   const todayText = getLocalDateString();
   const weekday = formatWeekday(todayText);
   const displayDate = formatDateForDisplay(todayText);
@@ -568,33 +599,26 @@ function getMissedDetentionNoticeText(yearGroup) {
     : "FIRST BREAK TODAY";
 
   const year = Number.parseInt(yearGroup, 10);
-  let roomLines;
-  let roomIntro;
+  let roomLine;
 
   if (year >= 7 && year <= 9) {
-    roomIntro = "in room A7.";
-    roomLines = [];
+    roomLine = "Room A7";
   } else if (year >= 10 && year <= 12) {
-    roomIntro = "in room A9.";
-    roomLines = [];
+    roomLine = "Room A9";
   } else {
-    // Year unknown: fall back to showing both rooms
-    roomIntro = "in the appropriate room below:";
-    roomLines = [
-      "",
-      "Year 7, Year 8 & Year 9 in A7",
-      "Year 10, Year 11 & Year 12 in A9"
-    ];
+    // Year unknown: show both rooms
+    roomLine = "Year 7, Year 8 & Year 9 in A7\nYear 10, Year 11 & Year 12 in A9";
   }
 
-  return [
-    `This week you arrived to school late (after roll call) and did not bring a note. You had a detention scheduled, but did not attend. Please attend the detention room at ${firstBreakText}, ${roomIntro}`,
-    ...roomLines,
-    "",
-    "If you refuse to attend a detention for your late arrival to school, you may receive an after school detention.",
-    "",
-    "If you believe this detention is an error, you must still attend the detention room and talk to the teacher on supervision."
-  ].join("\n");
+  return {
+    intro: `This week you arrived to school late (after roll call) and did not bring a note. Date: ${weekday} ${displayDate}. You had a detention scheduled, but did not attend. Please attend the detention room at ${firstBreakText}, in:`,
+    roomLine,
+    outro: [
+      "If you refuse to attend a detention for your late arrival to school, you may receive an after school detention.",
+      "",
+      "If you believe this detention is an error, you must still attend the detention room and talk to the teacher on supervision."
+    ].join("\n")
+  };
 }
 
 function formatStudentFullName(givenName, surname) {
