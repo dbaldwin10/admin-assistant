@@ -595,23 +595,23 @@ function getMissedDetentionNoticeParts(yearGroup) {
   };
   const breakTime = breakTimes[weekday];
   const firstBreakText = breakTime
-    ? `FIRST BREAK TODAY (${weekday} ${breakTime})`
+    ? `FIRST BREAK TODAY (${weekday})`
     : "FIRST BREAK TODAY";
 
   const year = Number.parseInt(yearGroup, 10);
   let roomLine;
 
   if (year >= 7 && year <= 9) {
-    roomLine = "Room A7";
+    roomLine = "A7 at ${breakTime}";
   } else if (year >= 10 && year <= 12) {
-    roomLine = "Room A9";
+    roomLine = "A9 at ${breakTime}";
   } else {
     // Year unknown: show both rooms
     roomLine = "Year 7, Year 8 & Year 9 in A7\nYear 10, Year 11 & Year 12 in A9";
   }
 
   return {
-    intro: `This week you arrived to school late (after roll call) and did not bring a note. Date: ${weekday} ${displayDate}. You had a detention scheduled, but did not attend. Please attend the detention room at ${firstBreakText}, in:`,
+    intro: `This week you arrived to school late (after roll call) and did not bring a note. You had a detention scheduled, but did not attend. Please attend the detention room at ${firstBreakText}, in room:`,
     roomLine,
     outro: [
       "If you refuse to attend a detention for your late arrival to school, you may receive an after school detention.",
