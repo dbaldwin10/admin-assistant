@@ -556,9 +556,8 @@ function getMissedDetentionNoticeText() {
   return [
     "This week you arrived to school late (after roll call) and did not bring a note. You had a detention scheduled, but did not attend. Please attend the detention room at FIRST BREAK TODAY (10:35 Mon / Wed / Fri or 10:25 Tue / Thur), in the appropriate room below:",
     "",
-    "Stage 4 (Year 7 and Year 8) in A6",
-    "Stage 5 (Year 9 and Year 10) in A7",
-    "Stage 6 (Year 11 and Year 12) in A9",
+    "Year 7, Year 8 & Year 9 in A7",
+    "Year 10, Year 11 & Year 12 in A9",
     "",
     "If you refuse to attend a detention for your late arrival to school, you may receive an after school detention.",
     "",
