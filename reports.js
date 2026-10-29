@@ -258,38 +258,54 @@ async function exportMissedDetentionNoticePdf() {
   const date = getLocalDateString();
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const slipHeight = pageHeight / 2;
   const marginX = 20;
   const maxTextWidth = pageWidth - (marginX * 2);
   const noticeText = getMissedDetentionNoticeText();
 
-  rows.forEach((student, index) => {
-    if (index > 0) {
-      doc.addPage();
-    }
-
+  const drawSlip = (student, top) => {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.text(student.fullName, marginX, 28);
+    doc.setFontSize(18);
+    doc.text(student.fullName, marginX, top + 14);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    doc.text(`Year ${student.yearGroup || "-"}    Roll Class: ${student.rollClass || "-"}`, marginX, 38);
+    doc.setFontSize(11);
+    doc.text(`Year ${student.yearGroup || "-"}    Roll Class: ${student.rollClass || "-"}`, marginX, top + 22);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Unexplained late arrival date(s):", marginX, 50);
+    doc.setFontSize(10);
+    doc.text("Unexplained late arrival date(s):", marginX, top + 31);
 
     doc.setFont("helvetica", "normal");
     const lateArrivalDateText = student.unexplainedLateArrivalDates.length > 0
       ? student.unexplainedLateArrivalDates.map(formatDateForDisplay).join(", ")
       : "Date unavailable";
     const lateArrivalDateLines = doc.splitTextToSize(lateArrivalDateText, maxTextWidth);
-    doc.text(lateArrivalDateLines, marginX, 57, { lineHeightFactor: 1.25 });
+    doc.text(lateArrivalDateLines, marginX, top + 37, { lineHeightFactor: 1.25 });
 
-    const noticeStartY = 57 + (lateArrivalDateLines.length * 5.5) + 8;
-    doc.setFontSize(11);
+    const noticeStartY = top + 37 + (lateArrivalDateLines.length * 5) + 6;
+    doc.setFontSize(10);
     const lines = doc.splitTextToSize(noticeText, maxTextWidth);
-    doc.text(lines, marginX, noticeStartY, { lineHeightFactor: 1.35 });
+    doc.text(lines, marginX, noticeStartY, { lineHeightFactor: 1.3 });
+  };
+
+  rows.forEach((student, index) => {
+    const slot = index % 2;                       // 0 = top half, 1 = bottom half
+    if (index > 0 && slot === 0) {
+      doc.addPage();
+    }
+
+    drawSlip(student, slot * slipHeight);
+
+    // Dashed cut line under the top slip (only if a second slip follows)
+    if (slot === 0 && index < rows.length - 1) {
+      doc.setDrawColor(150);
+      doc.setLineDashPattern([2, 2], 0);
+      doc.line(10, slipHeight, pageWidth - 10, slipHeight);
+      doc.setLineDashPattern([], 0);
+      doc.setDrawColor(0);
+    }
   });
 
   doc.save(`missed-detention-notices-${date}.pdf`);
@@ -310,7 +326,7 @@ async function exportMissedDetentionNoticeReceiptPdf() {
   const noticeText = getMissedDetentionNoticeText();
 
   const RECEIPT_WIDTH = 80;                 // mm, paper width
-  const MARGIN_X = 4;                       // printable area is usually ~72mm on 80mm paper
+  const MARGIN_X = 5;                       // printable area is usually ~72mm on 80mm paper
   const MAX_TEXT_WIDTH = RECEIPT_WIDTH - MARGIN_X * 2;
   const BOTTOM_PADDING = 12;                // space so the cutter doesn't slice through text
   const LINE_FACTOR = 1.3;
