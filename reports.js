@@ -326,7 +326,7 @@ async function exportMissedDetentionNoticeReceiptPdf() {
   const noticeText = getMissedDetentionNoticeText();
 
   const RECEIPT_WIDTH = 80;                 // mm, paper width
-  const MARGIN_X = 5;                       // printable area is usually ~72mm on 80mm paper
+  const MARGIN_X = 6;                       // printable area is usually ~72mm on 80mm paper
   const MAX_TEXT_WIDTH = RECEIPT_WIDTH - MARGIN_X * 2;
   const BOTTOM_PADDING = 12;                // space so the cutter doesn't slice through text
   const LINE_FACTOR = 1.3;
